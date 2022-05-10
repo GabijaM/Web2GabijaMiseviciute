@@ -2,7 +2,7 @@ from flask import Flask, Response, request, jsonify, abort
 import json
 import requests
 
-URL = "http://anotherweb:5000/"
+URL = "http://web2:5000/"
 
 application = Flask(__name__)  
 
@@ -26,14 +26,14 @@ books = [
     "title" : "A tale of Two Cities",
     "year" : 1859,
     "isbn" : 9780721407104,
-    "part" : 3
+    "part" : 1
     },
     {"id" : 4,
     "author" : "Antoine de Saint-Exupery",
     "title" : "The Little Prince",
     "year" : 1943,
     "isbn" : 9788854172388,
-    "part" : 4
+    "part" : 1
     }]
 
 @application.route("/")
@@ -101,29 +101,25 @@ def bookListID(bookID):
             return Response(json.dumps({"Failure" : "No data is given for update"}),status=400,mimetype="application/json")
 
         update = "This data have been changed: "
+        previousBook = book.copy()
 
         if "author" in updateBook:
-            update += "AUTHOR: [" + book[0]["author"] + "] -> ["
             book[0]["author"] = updateBook["author"]
-            update += book[0]["author"] + "]; "
+            update += "author; "
         if "title" in updateBook:
-            update += "TITLE: [" + book[0]["title"] + "] -> ["
             book[0]["title"] = updateBook["title"]
-            update += book[0]["title"] + "]; "
+            update += "title; "
         if "year" in updateBook:
-            update += "YEAR: [" + str(book[0]["year"]) + "] -> ["
             book[0]["year"] = updateBook["year"]
-            update += str(book[0]["year"]) + "]; "
+            update += "year; "
         if "isbn" in updateBook:
-            update += "ISBN: [" + str(book[0]["isbn"]) + "] -> ["
             book[0]["isbn"] = updateBook["isbn"]
-            update += str(book[0]["isbn"]) + "]; "
+            update += "isbn; "
         if "part" in updateBook:
-            update += "PART: [" + str(book[0]["part"]) + "] -> ["
             book[0]["part"] = updateBook["part"]
-            update += str(book[0]["part"]) + "]; "
 
-        return Response(json.dumps({"Success" : update}),status=200,mimetype="application/json")
+        # return Response(json.dumps({"Success" : update}),status=200,mimetype="application/json")
+        return Response(json.dumps({"Success" : update})+"From"+json.dumps(book)+"To"+json.dumps(previousBook),status="200",mimetype="application/json")
 
     elif request.method == "DELETE":
         for bookDEL in books:
@@ -131,13 +127,115 @@ def bookListID(bookID):
                 books.remove(bookDEL)
                 return Response(json.dumps({"Success" : "Book with id "+str(bookID)+" have been deleted"}),status=204,mimetype="application/json")
 
+# ============================
+
+@application.route("/api/extendedBookList", methods = ["GET", "POST"])
+def extendedBookList():
+    if request.method == "GET":
+        booksToReturn = []
+        for book in books:
+            booksWithPart = book.copy()
+            try:
+                get = requests.get(URL + "api/parts/" + str(book["part"]-1))
+                booksWithPart["part"] = get.json()
+            except requests.exceptions.RequestException as ex:
+                print(ex)
+            booksToReturn.append(booksWithPart)
+        return jsonify(booksToReturn)
+
+    if request.method == "POST":
+        newRecord = request.get_json("force=True")
+        try:
+            post = requests.post(URL + "api/parts", json = (newRecord["part"]))
+        except requests.exceptions.RequestException as ex:
+            return Response(json.dumps({"Failure" : "Can not connect to the server"}),status="503",mimetype="application/json")
+        if(str(post.status_code) == "400" or str(post.status_code) == "404"):
+            return Response(json.dumps({"Failure" : "error code: " + str(post.status_code)}),status=post.status_code,mimetype="application/json")
+        else:
+            return Response(json.dumps({"Success" : "added part: " + str(newRecord)}),status=201,mimetype="application/json")
+
+@application.route("/api/extendedBookList/<int:bookID>", methods = ["GET", "PUT", "DELETE"])
+def extendedBookListID(bookID):
+
+    book = [book for book in books if book["id"] == bookID]
+
+    if len(book) == 0:
+        abort(404)
+
+    if request.method == "GET":
+        bookWithPart = book.copy()
+        try:
+            get = requests.get(URL + "api/parts/" + str(book[0]["part"]-1))
+            bookWithPart[0]["part"] = get.json()
+        except requests.exceptions.RequestException as ex:
+            print(ex)
+        return jsonify(bookWithPart)
+
+    elif request.method == "PUT":
+        updateBook = request.get_json("force=True") 
+
+        if ("author" not in updateBook) and ("title" not in updateBook) and ("year" not in updateBook) and ("isbn" not in updateBook) and ("part" not in updateBook):
+            return Response(json.dumps({"Failure" : "No data is given for update"}),status=400,mimetype="application/json")
+
+        update = "This data have been changed: " 
+        previousBook = book.copy()
+
+        if "author" in updateBook:
+            book[0]["author"] = updateBook["author"]
+            update += "author; "
+        if "title" in updateBook:
+            book[0]["title"] = updateBook["title"]
+            update += "title; "
+        if "year" in updateBook:
+            book[0]["year"] = updateBook["year"]
+            update += "year; "
+        if "isbn" in updateBook:
+            book[0]["isbn"] = updateBook["isbn"]
+            update += "isbn; "
+        if "part" in updateBook:
+            try:
+                put = requests.put(URL + "api/parts/" + str(book[0]["part"]-1), json = updateBook["part"])
+                update += "part; "
+            except requests.exceptions.RequestException as ex:
+                update += "(part could not be changed because of connection error)"
+
+        return Response(json.dumps({"Success" : update})+"From"+json.dumps(book)+"To"+json.dumps(previousBook),status="200",mimetype="application/json")
+
+    elif request.method == "DELETE":
+        for book in books:
+            if book["id"] == bookID:
+                books.remove(book)
+                return Response(json.dumps({"Success" : "Deleted"}),status=204, mimetype="application/json")
+
 #======================================
 
 @application.route("/api/parts", methods = ["GET", "POST"])
 def partsList():
     if request.method == "GET":
-        parts = requests.get(URL + "parts/")
+        getParts = requests.get(URL + "/api/parts")
+        return jsonify(getParts.json())
+
+    elif request.method == "POST":
+        newRecord = request.get_json("force=True")
+        response = requests.post(URL+"/api/parts",json = (newRecord), )
+        if str(response.status_code) == "400" or str(response.status_code) == "404":
+            return Response(json.dumps({"Failure" : "error code: " + str(response.status_code) + response.text}),status=response.status_code,mimetype="application/json")
+        else:
+            return Response(json.dumps({"Success" : "added part: " + str(newRecord)}),status=201,mimetype="application/json")
+
+@application.route("/api/bookList/<int:bookID>/part", methods = ["GET"])
+def bookListIDPart(bookID):
+
+    book = [book for book in books if book["id"] == bookID]
+
+    if len(book) == 0:
+        abort(404)
+
+    if request.method == "GET":
+        parts = requests.get(URL + "/api/parts/" + str(book[0]["part"]-1))
         return jsonify(parts.json()) 
+
+#======================================
 
 if __name__ == "__main__":
     application.run(host = "0.0.0.0", port = 80, debug = True)

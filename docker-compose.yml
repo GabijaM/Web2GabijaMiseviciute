@@ -1,4 +1,4 @@
-version: '3.4'
+version: '3'
 
 services:
     web:
@@ -10,13 +10,13 @@ services:
             - .:/app
         networks:
             - network
-    anotherweb:
+    web2:
         build: ./another
         command: python app.py
         ports:
             - "81:5000"
         networks:
             - network
-        restart: always
+
 networks:
     network:
