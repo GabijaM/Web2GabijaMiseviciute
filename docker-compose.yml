@@ -1,0 +1,21 @@
+version: '3.4'
+
+services:
+    web:
+        build: .
+        command: python web2.py
+        ports:
+            - "80:80"
+        volumes:
+            - .:/app
+        networks:
+            - network
+    anotherweb:
+        build: ./another
+        ports:
+            - "5000:5000"
+        networks:
+            - network
+        restart: always
+networks:
+    network:
