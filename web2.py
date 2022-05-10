@@ -101,7 +101,7 @@ def bookListID(bookID):
             return Response(json.dumps({"Failure" : "No data is given for update"}),status=400,mimetype="application/json")
 
         update = "This data have been changed: "
-        previousBook = book.copy()
+        previousBook = book
 
         if "author" in updateBook:
             book[0]["author"] = updateBook["author"]
@@ -118,8 +118,7 @@ def bookListID(bookID):
         if "part" in updateBook:
             book[0]["part"] = updateBook["part"]
 
-        # return Response(json.dumps({"Success" : update}),status=200,mimetype="application/json")
-        return Response(json.dumps({"Success" : update})+"From"+json.dumps(book)+"To"+json.dumps(previousBook),status="200",mimetype="application/json")
+        return Response(json.dumps({"Success" : update})+json.dumps(book),status="200",mimetype="application/json")
 
     elif request.method == "DELETE":
         for bookDEL in books:
@@ -199,7 +198,7 @@ def extendedBookListID(bookID):
             except requests.exceptions.RequestException as ex:
                 update += "(part could not be changed because of connection error)"
 
-        return Response(json.dumps({"Success" : update})+"From"+json.dumps(book)+"To"+json.dumps(previousBook),status="200",mimetype="application/json")
+        return Response(json.dumps({"Success" : update})+json.dumps(book),status="200",mimetype="application/json")
 
     elif request.method == "DELETE":
         for book in books:
