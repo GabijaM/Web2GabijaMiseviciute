@@ -12,8 +12,9 @@ services:
             - network
     anotherweb:
         build: ./another
+        command: python app.py
         ports:
-            - "5000:5000"
+            - "81:5000"
         networks:
             - network
         restart: always
