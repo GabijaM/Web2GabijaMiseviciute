@@ -201,7 +201,7 @@ def extendedBookListID(bookID):
 
     elif request.method == "PUT":
         updateBook = request.get_json("force=True") 
-        bookWithPart = book.copy()
+        
 
         if ("author" not in updateBook) and ("title" not in updateBook) and ("year" not in updateBook) and ("isbn" not in updateBook) and ("part" not in updateBook):
             return Response(json.dumps({"Failure" : "No data is given for update"}),status=400,mimetype="application/json")
@@ -210,31 +210,23 @@ def extendedBookListID(bookID):
 
         if "author" in updateBook:
             book[0]["author"] = updateBook["author"]
-            # update += "author; "
+            update += "author; "
         if "title" in updateBook:
             book[0]["title"] = updateBook["title"]
-            # update += "title; "
+            update += "title; "
         if "year" in updateBook:
             book[0]["year"] = updateBook["year"]
-            # update += "year; "
+            update += "year; "
         if "isbn" in updateBook:
             book[0]["isbn"] = updateBook["isbn"]
-            # update += "isbn; "
+            update += "isbn; "
         if "part" in updateBook:
             try:
-                index = book[0]["part"]
-                put = requests.put(URL + "api/parts/" + str(index), json = updateBook["part"])
-                # update += "part; "
-                update = URL + "api/parts/" + str(index)
+                put = requests.put(URL + "api/parts/" + str(book[0]["part"]), json = updateBook["part"])
+                update += "part; "
+                update = URL + "api/parts/" + str(book[0]["part"])
             except requests.exceptions.RequestException as ex:
                 update += "(part could not be changed because of connection error)"
-
-            # try:
-            #     get = requests.get(URL + "api/parts/" + str(index))
-            #     bookWithPart[0]["part"] = get.json()
-            # except requests.exceptions.RequestException as ex:
-            #     print(ex)
-
         return Response(json.dumps({"Success" : str(update)})+json.dumps(book),status="200",mimetype="application/json")
 
     elif request.method == "DELETE":
