@@ -227,7 +227,6 @@ def putBookByID(bookID):
     if ("author" not in updateBook) and ("title" not in updateBook) and ("year" not in updateBook) and ("isbn" not in updateBook) and ("part" not in updateBook):
         return Response(json.dumps({"Failure" : "No data is given for update"}),status=400,mimetype="application/json")
 
-
     update = "This data have been changed: "
 
     if ("list" in request.args) and ("expand_list" not in request.args):
@@ -280,7 +279,7 @@ def putBookByID(bookID):
             book[0]["isbn"] = updateBook["isbn"]
             update += "isbn; "
         if "part" in updateBook:
-            
+
             returnBook = {
                 "author" : book[0]["author"],
                 "title" : book[0]["title"],
@@ -332,7 +331,6 @@ def getBooksPartByID(bookID):
         "price" : get.json()[0]["price"]
     }
     return Response(json.dumps(part),status="200",mimetype="application/json")
-
 
 if __name__ == "__main__":
     application.run(host = "0.0.0.0", port = 80, debug = True)
