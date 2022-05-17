@@ -5,19 +5,19 @@ app = Flask(__name__)
 
 
 parts = [
-    {"id" : 0,
+    {"id" : 1,
      "manufacturer": "AMD",
      "name": "Ryzen 7 3800x",
      "type": "CPU",
      "price": "331.90"
      },
-    {"id": 1,
+    {"id": 2,
      "manufacturer": "AMD",
      "name": "Ryzen 5 3600",
      "type": "CPU",
      "price": "181.00"
      },
-    {"id": 2,
+    {"id": 3,
      "manufacturer": "ASRock",
      "name": "AB350 PRO4",
      "type": "Motherboard",
@@ -25,7 +25,7 @@ parts = [
      }
 ]
 
-new_id = 3
+new_id = 4
 #GET
 #POST - Create/Add
 #DELETE

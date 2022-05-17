@@ -13,6 +13,8 @@ services:
     web2:
         build: ./another
         command: python app.py
+        volumes:
+            - ./another:/code
         ports:
             - "81:5000"
         networks:
