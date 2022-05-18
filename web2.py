@@ -45,10 +45,10 @@ def getBookList():
 
     booksToReturn = []
 
-    if ("list" in request.args) and ("expand_list" not in request.args):
-        return Response(json.dumps(books),status=200,mimetype="application/json")
+    args = request.args
+    expand = args.get('expand')
         
-    if ("expand_list" in request.args) and ("list" not in request.args):
+    if (expand == "part"):
         for book in books:
             booksWithPart = book.copy()
             try:
@@ -66,45 +66,14 @@ def getBookList():
             booksToReturn.append(booksWithPart)
         return Response(json.dumps(booksToReturn),status=200,mimetype="application/json")
 
-    error = "Request expected one parameter. ([expand_list] - expanded book list, [list] - book list)"
-    return Response(json.dumps({"Failure" : error}),status=400,mimetype="application/json")
+    else:
+        return Response(json.dumps(books),status=200,mimetype="application/json")
 
 @application.route("/api/books", methods = ["POST"])
 def postBookList():
-    newRecord = request.get_json("force: True")
-
-    if ("list" in request.args) and ("expand_list" not in request.args):
-        if ("author" in newRecord) and ("title" in newRecord) and ("year" in newRecord) and ("isbn" in newRecord) and ("part" in newRecord):
-            if type(newRecord["part"]) == type(0):
-                newBook = {
-                    "id" : books[len(books)-1]["id"] + 1,
-                    "author" : newRecord["author"],
-                    "title" : newRecord["title"],
-                    "year" : newRecord["year"],
-                    "isbn" : newRecord["isbn"],
-                    "part" : newRecord["part"]
-                }
-                books.append(newBook)
-
-                return Response((json.dumps({"Success":"Book was added; "})+json.dumps(newBook)), status=201, headers={"location": "/api/bookList/"+str(books[len(books)-1]["id"])}, mimetype="application/json")
-            error = "Request expects part id"
-            return Response(json.dumps({"Failure" : error}),status=400,mimetype="application/json")
-
-        else:
-            error = "This data has not been given: "
-            if "author" not in newRecord:
-                error += "author; "
-            if "title" not in newRecord:
-                error += "title; "
-            if "year" not in newRecord:
-                error += "year; "
-            if "isbn" not in newRecord:
-                error += "isbn;"
-            if "part" not in newRecord:
-                error += "part."
-            return Response(json.dumps({"Failure" : error}),status=400,mimetype="application/json")
+    newRecord = request.get_json("force: True")      
     
-    if ("expand_list" in request.args) and ("list" not in request.args):
+    if ("expand" in request.args):
         if ("author" in newRecord) and ("title" in newRecord) and ("year" in newRecord) and ("isbn" in newRecord) and ("part" in newRecord):
             if type(newRecord["part"]) == type(0):
                 return Response(json.dumps({"Failure" : "Request expects json type part"}),status=400,mimetype="application/json")
@@ -118,6 +87,13 @@ def postBookList():
                 try:
                     post = requests.post(URL + "api/parts", json = postPart)
                     getPart = requests.get(URL + "/api/parts")
+                    returnPart = {
+                        "id" : getPart.json()[len(getPart.json())-1]["id"],
+                        "manufacturer" : getPart.json()[len(getPart.json())-1]["manufacturer"],
+                        "name" : getPart.json()[len(getPart.json())-1]["name"],
+                        "price" : getPart.json()[len(getPart.json())-1]["price"],
+                        "type" : getPart.json()[len(getPart.json())-1]["type"]
+                    }
                 except requests.exceptions.RequestException as ex:
                     return Response(json.dumps({"Failure" : "Can not connect to the server"}),status="503",mimetype="application/json")
 
@@ -135,7 +111,7 @@ def postBookList():
                     }
 
                     returnBook = newBook.copy()
-                    returnBook["part"] = postPart
+                    returnBook["part"] = returnPart
 
                     books.append(newBook)
                     bookID = returnBook["id"]
@@ -166,9 +142,37 @@ def postBookList():
             if "part" not in newRecord:
                 error += "part."
             return Response(json.dumps({"Failure" : error}),status=400,mimetype="application/json")
-    
-    error = "Request expected one parameter. ([expand_list] - add book with expanded part, [list] - add book with part id)"
-    return Response(json.dumps({"Failure" : error}),status=400,mimetype="application/json")
+
+    else:
+        if ("author" in newRecord) and ("title" in newRecord) and ("year" in newRecord) and ("isbn" in newRecord) and ("part" in newRecord):
+            if type(newRecord["part"]) == type(0):
+                newBook = {
+                    "id" : books[len(books)-1]["id"] + 1,
+                    "author" : newRecord["author"],
+                    "title" : newRecord["title"],
+                    "year" : newRecord["year"],
+                    "isbn" : newRecord["isbn"],
+                    "part" : newRecord["part"]
+                }
+                books.append(newBook)
+
+                return Response((json.dumps({"Success":"Book was added; "})+json.dumps(newBook)), status=201, headers={"location": "/api/bookList/"+str(books[len(books)-1]["id"])}, mimetype="application/json")
+            error = "Request expects part id"
+            return Response(json.dumps({"Failure" : error}),status=400,mimetype="application/json")
+
+        else:
+            error = "This data has not been given: "
+            if "author" not in newRecord:
+                error += "author; "
+            if "title" not in newRecord:
+                error += "title; "
+            if "year" not in newRecord:
+                error += "year; "
+            if "isbn" not in newRecord:
+                error += "isbn;"
+            if "part" not in newRecord:
+                error += "part."
+            return Response(json.dumps({"Failure" : error}),status=400,mimetype="application/json")
 
 # ---------------------------------------------------------------------------------------------------------------------------------------
 
@@ -180,17 +184,10 @@ def getBookByID(bookID):
     if len(book) != 1:
         abort(404)
 
-    if ("list" in request.args) and ("expand_list" not in request.args):
-        returnBook = {
-            "author" : book[0]["author"],
-            "title" : book[0]["title"],
-            "year" : book[0]["year"],
-            "isbn" : book[0]["isbn"],
-            "part" : book[0]["part"]
-        }
-        return Response((json.dumps(returnBook)), status=200,mimetype="application/json")
-
-    if ("expand_list" in request.args) and ("list" not in request.args):
+    args = request.args
+    expand = args.get('expand')
+        
+    if (expand == "part"):
         returnBook = {
             "author" : book[0]["author"],
             "title" : book[0]["title"],
@@ -212,8 +209,15 @@ def getBookByID(bookID):
 
         return Response(json.dumps(returnBook), status=200,mimetype="application/json")
 
-    error = "Request expected one parameter. ([expand_list] - expanded book list, [list] - book list)"
-    return Response(json.dumps({"Failure" : error}),status=400,mimetype="application/json")
+    else:
+        returnBook = {
+            "author" : book[0]["author"],
+            "title" : book[0]["title"],
+            "year" : book[0]["year"],
+            "isbn" : book[0]["isbn"],
+            "part" : book[0]["part"]
+        }
+        return Response((json.dumps(returnBook)), status=200,mimetype="application/json")
 
 @application.route("/api/books/<int:bookID>", methods = ["PUT"])
 def putBookByID(bookID):
@@ -229,37 +233,7 @@ def putBookByID(bookID):
 
     update = "This data have been changed: "
 
-    if ("list" in request.args) and ("expand_list" not in request.args):
-        if type(updateBook["part"]) == type(0):
-            if "author" in updateBook:
-                book[0]["author"] = updateBook["author"]
-                update += "author; "
-            if "title" in updateBook:
-                book[0]["title"] = updateBook["title"]
-                update += "title; "
-            if "year" in updateBook:
-                book[0]["year"] = updateBook["year"]
-                update += "year; "
-            if "isbn" in updateBook:
-                book[0]["isbn"] = updateBook["isbn"]
-                update += "isbn; "
-            if "part" in updateBook:
-                book[0]["part"] = updateBook["part"]
-
-            returnBook = {
-                "author" : book[0]["author"],
-                "title" : book[0]["title"],
-                "year" : book[0]["year"],
-                "isbn" : book[0]["isbn"],
-                "part" : book[0]["part"]
-            }
-
-            return Response(json.dumps({"Success" : update})+json.dumps(returnBook),status="200",mimetype="application/json")
-
-        error = "Request expects part id"
-        return Response(json.dumps({"Failure" : error}),status=400,mimetype="application/json")
-
-    if ("expand_list" in request.args) and ("list" not in request.args):
+    if ("expand" in request.args):
         if type(updateBook["part"]) == type(0):
             return Response(json.dumps({"Failure" : "Request expects json type part"}),status=400,mimetype="application/json")
 
@@ -302,9 +276,36 @@ def putBookByID(bookID):
                 update += "(part could not be changed because of connection error)"
             
         return Response(json.dumps({"Success" : str(update)})+json.dumps(returnBook),status="200",mimetype="application/json")
-        
-    error = "Request expected one parameter. ([expand_list] - edit book with expanded part, [list] - edit book with part id)"
-    return Response(json.dumps({"Failure" : error}),status=400,mimetype="application/json")
+
+    else:
+        if type(updateBook["part"]) == type(0):
+            if "author" in updateBook:
+                book[0]["author"] = updateBook["author"]
+                update += "author; "
+            if "title" in updateBook:
+                book[0]["title"] = updateBook["title"]
+                update += "title; "
+            if "year" in updateBook:
+                book[0]["year"] = updateBook["year"]
+                update += "year; "
+            if "isbn" in updateBook:
+                book[0]["isbn"] = updateBook["isbn"]
+                update += "isbn; "
+            if "part" in updateBook:
+                book[0]["part"] = updateBook["part"]
+
+            returnBook = {
+                "author" : book[0]["author"],
+                "title" : book[0]["title"],
+                "year" : book[0]["year"],
+                "isbn" : book[0]["isbn"],
+                "part" : book[0]["part"]
+            }
+
+            return Response(json.dumps({"Success" : update})+json.dumps(returnBook),status="200",mimetype="application/json")
+
+        error = "Request expects part id"
+        return Response(json.dumps({"Failure" : error}),status=400,mimetype="application/json")
 
 @application.route("/api/books/<int:bookID>", methods = ["DELETE"])
 def deleteBookByID(bookID):
