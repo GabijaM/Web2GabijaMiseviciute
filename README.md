@@ -46,7 +46,8 @@
 "part" : partID
 }
 ```
-#### OR if the post request is with expanded part, the part is added to another server using `post` request to it. To book only added part id:
+#### OR
+#### if the post request is with expanded part, the part is added to another server using `post` request to it. To book only added part id:
 ```
 {
 ...
