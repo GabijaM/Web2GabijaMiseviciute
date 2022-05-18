@@ -47,14 +47,14 @@
 }
 ```
 #### OR
-#### if the post request is with expanded part, the part is added to another server using `post` request to it. To book only added part id:
+#### If the post request is with expanded part, the part is added to another server using `post` request to it. To book only added part id:
 ```
 {
 ...
 "part" : partID
 }
 ```
-#### AND `post` to http://web2:5000/api/parts with:
+#### AND `post` request sended to http://web2:5000/api/parts with:
 ```
 {
 "manufacturer" : "manufacturer",
